@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+<div style="margin: 20px">
+    <form action="/auth/logout" method="post"><input type="submit" value="Logout" onclick="quit()"></form>
+    <button><a href="/">Home</a></button>
+    <h2>Main chat Page</h2>
+
+    <ul id="messages" style="list-style-type: none; margin-left: 20px">
+        <%msgList.map(msg => {%>
+            <li><%=msg.username%>: <%=msg.text%></li>
+        <%})%>
+    </ul>
+
+    <input type="text" id="input" autocomplete="off" onchange="onChange(event)">
+    <input type="submit" value="Send" id="submit" onclick="sendMsg()">
+</div>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    const id = document.cookie.split("=")[1];
+    var msg = {userId: id, msg: ""};
+
+    socket.emit('join', JSON.stringify({userId: id}));
+
+    socket.on('mainChat: mailing', message => {
+        printMessage(JSON.parse(message))
+    })
+
+    socket.on("auth_disconnect", async () => {
+        console.log("here")
+        document.location.href = "/";
+        // const headers = {'Content-Type': 'application/json'}
+        // const body = JSON.stringify({});
+        // await fetch("http://localhost:3000/auth/logout", {method: "POST", body, headers})
+    })
+
+    function quit() {
+        socket.emit("logout", JSON.stringify({id: id}))
+    }
+
+    function printMessage(message) {
+        const li = document.createElement('li');
+
+        li.innerHTML = `${message.username}: ${message.message}`;
+        messages.appendChild(li);
+    }
+
+    function onChange (e) {
+        msg.msg = e.target.value;
+    }
+
+    function sendMsg () {
+        if (!msg.msg) {return ;}
+        // socket.emit('mainChat: message', JSON.stringify({msg: msg}));
+        socket.emit('mainChat: message', JSON.stringify({message: msg.msg, userId: msg.userId}));
+
+        document.getElementById("input").value = "";
+        msg.msg = "";
+    }
+</script>
+</html>

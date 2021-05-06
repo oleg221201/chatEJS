@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+<div style="margin: 20px">
+    <form action="/auth/logout" method="post"><input type="submit" value="Logout" onclick="quit()"></form>
+    <button><a href="/">Home</a></button>
+    <h2>Chat Page</h2>
+    <ul id="messages" style="list-style-type: none; margin-left: 20px">
+        <%msgList.map(msg => {%>
+        <li><%=msg.username%>: <%=msg.text%></li>
+        <%})%>
+    </ul>
+    <input type="text" id="input" autocomplete="off" onchange="changeMsg(event)">
+    <input type="submit" value="Send" id="submit" onclick="sendMsg()">
+</div>
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    const chatId = +location.href.split('chat/')[1];
+    const id = +document.cookie.split("=")[1];
+    var msg = "";
+
+    socket.emit('chat: join', JSON.stringify({chatId, userId: id}))
+
+    socket.on(`chat_${chatId}: mailing`, message => {
+        console.log(message)
+        printMessage(JSON.parse(message));
+    })
+
+    socket.on("auth_disconnect", async () => {
+        document.location.href = "/";
+    })
+
+    function quit() {
+        socket.emit("logout", JSON.stringify({id: id}))
+    }
+
+    function printMessage(message) {
+        const li = document.createElement('li');
+
+        li.innerHTML = `${message.senderUsername}: ${message.message}`;
+        messages.appendChild(li);
+    }
+
+    function changeMsg (e) {
+        msg = e.target.value;
+    }
+
+    function sendMsg () {
+        if (!msg) {return ;}
+        socket.emit(`chat: message`, JSON.stringify({message: msg, userId: id, chatId}));
+
+        document.getElementById("input").value = "";
+        msg = "";
+    }
+</script>
+</html>

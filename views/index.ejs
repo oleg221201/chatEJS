@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+</head>
+<body>
+<div style="margin: 20px">
+    <form action="/auth/logout" method="post"><input type="submit" value="Logout" onclick="quit()"></form>
+    <button><a href="/mainChat">mainChat</a></button>
+    <h2>Logged in as: <%= username %></h2>
+    <br>
+    <% users.map(user => { %>
+        <% var bool = true %>
+        <% chats.forEach(chat => { %>
+            <% if ((chat.member1Id == user.id || chat.member2Id == user.id)
+                    && (chat.member1Id == id || chat.member2Id == id)) { %>
+                <div class="row">
+                    <div class="col s2 offset-s1"><%= user.username %></div>
+                    <div class="col s2">
+                        <button class="waves-effect waves-light btn-small">
+                            <a style="color: white"
+                               href="/chat/<%= chat.id %>">
+                                Write a message
+                            </a>
+                        </button>
+                    </div>
+                </div>
+                <% bool = false; %>
+            <% } %>
+        <% }) %>
+        <% if (bool) { %>
+            <div class="row">
+                <div class="col s2 offset-s1"><%= user.username %></div>
+                <div class="col s2">
+                    <button class="waves-effect waves-light btn-small" onclick="createChat(<%= user.id %>)">
+                        Write a message
+                    </button>
+                </div>
+            </div>
+        <% } %>
+    <% }) %>
+
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    document.cookie = "userId=<%= id %>"
+
+    const id = document.cookie.split("=")[1];
+
+    function quit() {
+        const socket = io();
+        socket.emit("logout", JSON.stringify({id: id}))
+    }
+
+    async function createChat(member2Id) {
+        const id = Number.parseInt(document.cookie.split("=")[1]);
+
+        const url = "http://localhost:3000/chat"
+        var body = {member1: id, member2: member2Id};
+        body = JSON.stringify(body);
+        const headers = {'Content-Type': 'application/json'}
+
+        const res = await fetch(url, {method: "POST", body, headers});
+        const data = await res.json();
+        console.log('data', data)
+        console.log('res', res)
+        if (!res.ok) {
+            throw new Error(data.message || data.error || "Something go wrong");
+        }
+
+        location.href = `/chat/${data.chatId}`;
+    }
+</script>
+</body>
+</html>
